@@ -1,4 +1,3 @@
-#Embedded file name: covgen.py
 import astor
 from ast import *
 import sys
@@ -134,13 +133,13 @@ def func_test_gen(func):
         Tpoint = find_mini(check_funcT, argc)
         Fpoint = find_mini(check_funcF, argc)
         if Tpoint:
-            print '%dT ' % i + str(Tpoint)[1:-1]
+            print '| %dT ' % i + str(Tpoint)[1:-1]
         else:
-            print '%dT -' % i
+            print '| %dT -' % i
         if Fpoint:
-            print '%dF ' % i + str(Fpoint)[1:-1]
+            print '| %dF ' % i + str(Fpoint)[1:-1]
         else:
-            print '%dF -' % i
+            print '| %dF -' % i
 
 
 
@@ -152,5 +151,6 @@ if __name__ == '__main__':
     K = 10
     for func in root.body:
         counter = 0
-        print func.name
+        print 'function : ' + func.name
         func_test_gen(func)
+        print
