@@ -1,11 +1,11 @@
 depthstrangevariablename = 0
 def f(a, b=2):
     if a > 1:
-        return 1
+        a += b
     elif b == 2:
-        return 2
+        a += 3
     else:
-        return 3
+        a += 5
     if a < 1:
         return a - 1, 1, 0, 'magic\xc0\xff\xeemagic'
     else:

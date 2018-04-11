@@ -117,7 +117,7 @@ def func_test_gen(func):
                     bd = 0
                 else:
                     bd = K - x[0]
-            fit = float(bd) / (bd + K) * ((1 + K/1000.0)**ap_lvl)
+            fit = float(bd) / (bd + K) * (2**ap_lvl)
             return fit
 
         return check_func
