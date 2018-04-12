@@ -28,8 +28,11 @@ def find_mini(func, argc):
             gradient.append(func(*next_point) - res)
 
         #print gradient
+        #print point, res
+        #raw_input()
+
         norm = sum(map(lambda x: x**2,gradient))
-        alpha = res/norm
+        alpha = res/(norm+1)
 
         point = map(lambda x, y: x - alpha*y if y>0 else x - alpha*y, point, gradient)
         res = func(*point)
@@ -41,10 +44,6 @@ def find_mini(func, argc):
                 alpha = 1
             same_counter = 0
         old_res = res
-        #print point, res
-        #raw_input()
-    #print possible_counter
-    #print res
     return point
 
 
@@ -79,7 +78,6 @@ def find_mini_avm(func,argc):
         else:
             same_counter = 0
         old_res = ori_res
-        #print point, ori_res
 
     return point
 
@@ -88,6 +86,7 @@ def find_mini_avm(func,argc):
 def gen_branch_file(cur, func, depth):
     global cops
     global counter
+    global no_func
     if isinstance(cur, If):
         a = cur.test.left
         b = cur.test.comparators[0]
@@ -98,11 +97,11 @@ def gen_branch_file(cur, func, depth):
         cur.body = [Return(value=Tuple(elts=[BinOp(left=a, op=Sub(), right=b), Num(n=cops.index(type(op))), Num(n=depth), Str(s='magic\xc0\xff\xeemagic')]))]
         cur.orelse = cur.body
         with open('mutations/%s_%dT.py' % (func.name, counter), 'w') as filei:
-            filei.write('depthstrangevariablename = %d\n' % depth + astor.to_source(func))
+            filei.write('depthstrangevariablename = %d\n' % depth + astor.to_source(Module(body=imports+[func])))
         cur.orelse = [Return(value=Tuple(elts=[BinOp(left=a, op=Sub(), right=b), Num(n=5 - cops.index(type(op))), Num(n=depth), Str(s='magic\xc0\xff\xeemagic')]))]
         cur.body = cur.orelse
         with open('mutations/%s_%dF.py' % (func.name, counter), 'w') as filei:
-            filei.write('depthstrangevariablename = %d\n' % depth + astor.to_source(func))
+            filei.write('depthstrangevariablename = %d\n' % depth + astor.to_source(Module(body=imports+[func])))
         cur.body = old_body
         cur.orelse = old_orelse
         cur.orelse.insert(0, Return(value=Tuple(elts=[BinOp(left=a, op=Sub(), right=b), Num(n=cops.index(type(op))), Num(n=depth), Str(s='magic\xc0\xff\xeemagic')])))
@@ -174,7 +173,6 @@ def func_test_gen(func):
                 bd_mini = bd
             elif lvl_mini == ap_lvl:
                 bd_mini = min(bd_mini,bd)
-            #print bd, ap_lvl
             fit = bd + (bd_mini*ap_lvl)
             return fit
 
@@ -208,7 +206,7 @@ if __name__ == '__main__':
     root = astor.parse_file(sys.argv[1])
     K = 1
     base_width = 10
-    
+    imports = filter(lambda x: isinstance(x,Import),root.body)
     for func in root.body:
         if not isinstance(func,FunctionDef):
             continue

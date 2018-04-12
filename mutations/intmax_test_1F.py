@@ -1,6 +1,8 @@
 depthstrangevariablename = 0
+import sys
+
+
 def intmax_test(a):
-    import sys
     if a == sys.maxint:
         return a - sys.maxint, 5, 0, 'magic\xc0\xff\xeemagic'
     else:
