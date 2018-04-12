@@ -5,11 +5,15 @@ import random
 import importlib
 import os
 import math
+import numpy as np
 cops = [Eq,Lt,Gt,LtE,GtE,NotEq]
 
+
 def find_mini(func, argc):
-    point = [random.randint(1,K) for _ in xrange(argc)]
+    point = [random.randint(1,base_width) for _ in xrange(argc)]
     res = func(*point)
+    if res==None:
+        return None
     same_counter = 0
     possible_counter = 0
     old_res = None
@@ -18,22 +22,67 @@ def find_mini(func, argc):
             return None
         gradient = []
         possible_counter+=1
-        alpha = possible_counter
         for i in range(argc):
             next_point = point[:]
             next_point[i] += 1
             gradient.append(func(*next_point) - res)
 
-        point = map(lambda x, y: int(math.floor(x - alpha*y)) if y>0 else int(math.ceil(x - alpha*y)), point, gradient)
+        #print gradient
+        norm = sum(map(lambda x: x**2,gradient))
+        alpha = res/norm
+
+        point = map(lambda x, y: x - alpha*y if y>0 else x - alpha*y, point, gradient)
         res = func(*point)
         if old_res and old_res==res:
             same_counter += 1
-            point = map(lambda x, y: x+y,point,[random.randint(-K*same_counter,K*same_counter+1) for _ in xrange(argc)])
+            point = map(lambda x, y: x+y,point,[random.randint(-base_width*same_counter,base_width*same_counter+1) for _ in xrange(argc)])
         else:
+            if old_res<res:
+                alpha = 1
             same_counter = 0
         old_res = res
+        #print point, res
+        #raw_input()
     #print possible_counter
+    #print res
     return point
+
+
+def find_mini_avm(func,argc):
+    point = [random.randint(1,base_width) for _ in xrange(argc)]
+    ori_res = func(*point)
+    same_counter = 0
+    old_res = None
+    while ori_res!=0:
+        for i in xrange(argc):
+            old_velocity = 0
+            velocity = 1
+            # determine direction
+            point[i]+=1
+            if func(*point) < ori_res:
+                direction = 1
+            else:
+                direction = -1
+            point[i]-=1
+            # go!
+            while True:
+                point[i] += velocity*direction
+                res = func(*point)
+                if res>=ori_res:
+                    break
+                ori_res = res
+                velocity, old_velocity = velocity+old_velocity, velocity
+            point[i] -= velocity*direction
+        if old_res and old_res == ori_res:
+            same_counter += 1
+            point = map(lambda x, y: x+y, point, [random.randint(-base_width*same_counter,base_width*same_counter+1) for _ in xrange(argc)])
+        else:
+            same_counter = 0
+        old_res = ori_res
+        #print point, ori_res
+
+    return point
+
 
 
 def gen_branch_file(cur, func, depth):
@@ -80,18 +129,20 @@ def func_test_gen(func):
         def check_func(*args):
             global K
             depth = mod.__dict__['depthstrangevariablename']
+            lvl_mini = depth
+            bd_mini = np.inf
             x = mod.__dict__[func.name](*args)
             try:
                 assert x[-1] == 'magic\xc0\xff\xeemagic'
             except:
-                return 42
+                return None
 
             ap_lvl = depth - x[2]
             if x[1] == 0:
                 if x[0] == 0:
                     bd = 0
                 else:
-                    bd = abs(x[0]) + K
+                    bd = abs(x[0])
             elif x[1] == 5:
                 if x[0] == 0:
                     bd = K
@@ -117,7 +168,14 @@ def func_test_gen(func):
                     bd = 0
                 else:
                     bd = K - x[0]
-            fit = float(bd) / (bd + K) * (2**ap_lvl)
+            #beta = 100
+            if lvl_mini > ap_lvl:
+                lvl_mini = ap_lvl
+                bd_mini = bd
+            elif lvl_mini == ap_lvl:
+                bd_mini = min(bd_mini,bd)
+            #print bd, ap_lvl
+            fit = bd + (bd_mini*ap_lvl)
             return fit
 
         return check_func
@@ -148,8 +206,12 @@ if __name__ == '__main__':
         print 'usage: python covgen.py target.py'
         exit()
     root = astor.parse_file(sys.argv[1])
-    K = 10
+    K = 1
+    base_width = 10
+    
     for func in root.body:
+        if not isinstance(func,FunctionDef):
+            continue
         counter = 0
         print 'function : ' + func.name
         func_test_gen(func)
